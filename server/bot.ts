@@ -278,7 +278,7 @@ export class TelegramBotService {
       session.temp_data.destination_url = validation.url;
       dbService.setSession(userId, 'AWAITING_DESCRIPTION', session.temp_data);
 
-      const reply = `✅ <b>Destination URL set:</b>\n<code>${validation.url}</code>\n\nNow send the <b>Link Description</b> (this will appear in social media preview cards):`;
+      const reply = `📝 Send the Link Description:`;
       await this.sendMessage(chatId, reply);
       return { replied: true, responseText: reply };
     }
@@ -295,12 +295,12 @@ export class TelegramBotService {
       session.temp_data.description = description;
       dbService.setSession(userId, 'AWAITING_FRAMING', session.temp_data);
 
-      const reply = `Choose image framing style:`;
+      const reply = `Choose image framing:`;
       const replyMarkup = {
         inline_keyboard: [
           [
-            { text: '📐 Crop 16:9 (1200×630)', callback_data: 'frame_crop_16_9' },
-            { text: '🖼️ Full Image', callback_data: 'frame_full' }
+            { text: '✂️ Crop 16:9', callback_data: 'frame_crop_16_9' },
+            { text: '🖼 Full Image', callback_data: 'frame_full' }
           ]
         ]
       };
@@ -371,7 +371,7 @@ export class TelegramBotService {
     const userId = String(fromUser?.id || chatId);
     dbService.setSession(userId, 'AWAITING_IMAGE', {});
 
-    const text = `Please send me the image (JPG or PNG up to 10MB).`;
+    const text = `🖼 Send an image.`;
     await this.sendMessage(chatId, text);
     return { replied: true, responseText: text };
   }
@@ -416,7 +416,7 @@ export class TelegramBotService {
       original_file_name: fileName
     });
 
-    const text = `Image received.\n\nPlease send the destination URL (e.g. <code>https://example.com</code>):`;
+    const text = `🔗 Send the Redirect Destination URL.`;
     await this.sendMessage(chatId, text);
     return { replied: true, responseText: text };
   }
@@ -466,21 +466,23 @@ export class TelegramBotService {
 
     dbService.clearSession(userId);
 
-    const publicUrl = `${appUrl}/i/${link.shortId}`;
-    const text = `Image Link created successfully.\n\n` +
-      `Image Link:\n${publicUrl}\n\n` +
-      `Destination: ${link.destinationUrl}\n` +
-      `Description: ${link.description}\n` +
-      `Framing: ${link.framingMode === 'crop_16_9' ? 'Crop 16:9' : 'Full Image'}`;
+    const publicUrl = `${appUrl}/share/${link.shortId}`;
+    const text = `✅ <b>Image Link Created</b>\n\n` +
+      `🔗 <code>${publicUrl}</code>\n\n` +
+      `<b>Destination:</b> ${link.destinationUrl}\n` +
+      `<b>Description:</b> ${link.description}\n` +
+      `<b>Framing:</b> ${link.framingMode === 'crop_16_9' ? 'Crop 16:9' : 'Full Image'}`;
+
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(publicUrl)}&text=${encodeURIComponent(link.description)}`;
 
     const replyMarkup = {
       inline_keyboard: [
         [
           { text: '🔗 Open Link', url: publicUrl },
-          { text: '📱 Open Mini App', web_app: { url: `${appUrl}?user_id=${userId}` } }
+          { text: '📤 Share', url: shareUrl }
         ],
         [
-          { text: '📂 My Links', callback_data: 'cmd_links' },
+          { text: '📱 Open Mini App', web_app: { url: `${appUrl}?user_id=${userId}` } },
           { text: '➕ Create Another', callback_data: 'cmd_new' }
         ]
       ]

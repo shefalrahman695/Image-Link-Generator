@@ -78,11 +78,11 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
 
   const handleFileSelected = async (file: File) => {
     const ext = file.name.toLowerCase();
-    const validExts = ['.jpg', '.jpeg', '.png'];
+    const validExts = ['.jpg', '.jpeg', '.png', '.webp'];
     const hasValidExt = validExts.some((e) => ext.endsWith(e));
 
     if (!hasValidExt || !file.type.startsWith('image/')) {
-      setErrorMessage('Invalid image format. Supported formats: JPG, JPEG, and PNG.');
+      setErrorMessage('Invalid image format. Supported formats: JPG, JPEG, PNG, and WebP.');
       return;
     }
 
@@ -107,13 +107,21 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
         method: 'POST',
         body: formData
       });
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = null;
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text.length < 150 ? text : `Server error (${res.status})`);
+      }
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to upload preview');
+        throw new Error(data?.error || 'Failed to upload preview');
       }
       setRawKey(data.rawKey);
     } catch (err: any) {
-      console.error(err);
+      console.error('Preview upload notice:', err.message);
       // Keep local preview if upload endpoint had network hiccup
     } finally {
       setIsUploading(false);
@@ -136,7 +144,7 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
     setErrorMessage(null);
 
     if (!selectedFile && !rawKey) {
-      setErrorMessage('Please upload an image (JPG or PNG up to 10MB).');
+      setErrorMessage('Please upload an image (JPG, PNG, or WebP up to 10MB).');
       return;
     }
 
@@ -174,9 +182,17 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
         body: formData
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = null;
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text.length < 150 ? text : `Server returned non-JSON response (${res.status})`);
+      }
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to generate Image Link');
+        throw new Error(data?.error || `Failed to generate Image Link (${res.status})`);
       }
 
       setCreatedLink(data.link);
@@ -190,7 +206,7 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
 
   const handleCopy = () => {
     if (!createdLink) return;
-    const url = createdLink.publicUrl || `${window.location.origin}/i/${createdLink.shortId}`;
+    const url = createdLink.publicUrl || `${window.location.origin}/share/${createdLink.shortId}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -271,7 +287,7 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="font-mono text-sm font-bold text-sky-300 truncate select-all">
-                {createdLink.publicUrl || `${window.location.origin}/i/${createdLink.shortId}`}
+                {createdLink.publicUrl || `${window.location.origin}/share/${createdLink.shortId}`}
               </span>
               <button
                 onClick={handleCopy}
@@ -295,11 +311,11 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
           {/* Action Buttons */}
           <div className="grid grid-cols-3 gap-2.5 mb-3">
             <a
-              href={createdLink.publicUrl || `/i/${createdLink.shortId}`}
+              href={createdLink.publicUrl || `/share/${createdLink.shortId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-1.5 rounded-xl border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 px-3 py-2.5 text-xs font-semibold text-neutral-200 transition-colors"
-              title="Test human redirect in new tab"
+              title="Test immediate human redirect in new tab"
             >
               <ExternalLink className="h-3.5 w-3.5" />
               <span>Open Link</span>

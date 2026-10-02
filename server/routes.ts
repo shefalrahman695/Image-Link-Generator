@@ -141,11 +141,14 @@ apiRouter.post('/image-links', createLimiter, upload.single('image'), async (req
       telegramUserId
     });
 
-    const publicUrl = `${appUrl}/i/${link.shortId}`;
+    const publicUrl = `${appUrl}/share/${link.shortId}`;
 
     return res.status(201).json({
       success: true,
-      link,
+      link: {
+        ...link,
+        publicUrl
+      },
       shortId: link.shortId,
       publicUrl,
       processedImageUrl
@@ -167,7 +170,7 @@ apiRouter.get('/image-links/:shortId', (req: Request, res: Response) => {
   const appUrl = getPublicAppUrl(req);
   return res.json({
     ...link,
-    publicUrl: `${appUrl}/i/${link.shortId}`
+    publicUrl: `${appUrl}/share/${link.shortId}`
   });
 });
 
@@ -201,7 +204,7 @@ apiRouter.get('/image-links', (req: Request, res: Response) => {
   const appUrl = getPublicAppUrl(req);
   const enriched = links.map(l => ({
     ...l,
-    publicUrl: `${appUrl}/i/${l.shortId}`
+    publicUrl: `${appUrl}/share/${l.shortId}`
   }));
 
   const stats = userId ? dbService.getUserStats(userId) : dbService.getOverallStats();
@@ -241,6 +244,23 @@ apiRouter.delete('/image-links/:id', (req: Request, res: Response) => {
   return res.json({ success: true, deleted: true });
 });
 
+// --- Abuse Protection: Report Link ---
+apiRouter.post('/image-links/:shortId/report', (req: Request, res: Response) => {
+  const { shortId } = req.params;
+  const result = dbService.reportLink(shortId);
+  if (!result.success) {
+    return res.status(404).json({ error: 'Image Link not found.' });
+  }
+  return res.json({
+    success: true,
+    message: result.disabled
+      ? 'This link has received multiple abuse reports and has been automatically deactivated.'
+      : 'Thank you for your report. Our moderation team has been notified.',
+    disabled: result.disabled,
+    reportCount: result.reportCount
+  });
+});
+
 // --- Developer Crawler Test Tool (Section 29) ---
 apiRouter.get('/crawler-test', async (req: Request, res: Response) => {
   const target = req.query.url as string || req.query.shortId as string;
@@ -248,8 +268,10 @@ apiRouter.get('/crawler-test', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Query parameter url or shortId is required.' });
   }
 
-  let shortId = target;
-  if (target.includes('/i/')) {
+  let shortId = target.trim();
+  if (target.includes('/share/')) {
+    shortId = target.split('/share/')[1].split('?')[0].split('/')[0];
+  } else if (target.includes('/i/')) {
     shortId = target.split('/i/')[1].split('?')[0].split('/')[0];
   }
 
@@ -330,7 +352,7 @@ apiRouter.post('/run-tests', async (req: Request, res: Response) => {
 
   // TEST 1: Normal browser request -> Immediate HTTP 302 redirect
   try {
-    const r1 = await fetch(`${localBase}/i/${testShortId}`, {
+    const r1 = await fetch(`${localBase}/share/${testShortId}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36'
       },
@@ -355,7 +377,7 @@ apiRouter.post('/run-tests', async (req: Request, res: Response) => {
 
   // TEST 2: Social crawler request -> HTTP 200 with OG & Twitter tags
   try {
-    const r2 = await fetch(`${localBase}/i/${testShortId}`, {
+    const r2 = await fetch(`${localBase}/share/${testShortId}`, {
       headers: {
         'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
       },
@@ -383,7 +405,7 @@ apiRouter.post('/run-tests', async (req: Request, res: Response) => {
   // TEST 3: Disabled link -> HTTP 403, never redirect
   try {
     dbService.updateLinkStatus(testLink.id, 'disabled');
-    const r3 = await fetch(`${localBase}/i/${testShortId}`, {
+    const r3 = await fetch(`${localBase}/share/${testShortId}`, {
       headers: { 'User-Agent': 'Mozilla/5.0 Chrome/120.0.0.0 Safari/537.36' },
       redirect: 'manual'
     });
@@ -406,7 +428,7 @@ apiRouter.post('/run-tests', async (req: Request, res: Response) => {
 
   // TEST 4: Unknown link -> HTTP 404
   try {
-    const r4 = await fetch(`${localBase}/i/unknown_${Date.now()}`, {
+    const r4 = await fetch(`${localBase}/share/unknown_${Date.now()}`, {
       headers: { 'User-Agent': 'Mozilla/5.0 Chrome/120.0.0.0 Safari/537.36' },
       redirect: 'manual'
     });
@@ -434,7 +456,7 @@ apiRouter.post('/run-tests', async (req: Request, res: Response) => {
       throw new Error('Simulated Database Write Failure');
     };
 
-    const r5 = await fetch(`${localBase}/i/${testShortId}`, {
+    const r5 = await fetch(`${localBase}/share/${testShortId}`, {
       headers: { 'User-Agent': 'Mozilla/5.0 Chrome/120.0.0.0 Safari/537.36' },
       redirect: 'manual'
     });

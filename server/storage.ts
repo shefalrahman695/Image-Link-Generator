@@ -9,8 +9,8 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 }
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-export const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
-export const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png'];
+export const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
+export const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export type FramingMode = 'crop_16_9' | 'full';
 

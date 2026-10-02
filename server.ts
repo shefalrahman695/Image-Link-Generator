@@ -57,9 +57,25 @@ function isSocialCrawler(userAgent?: string): boolean {
 // Mount API routes
 app.use('/api', apiRouter);
 
-// --- Public Image Link Endpoint: /i/:shortId ---
-// Handles crawlers (returns server-rendered OG metadata) and humans (records click & redirects)
-app.get('/i/:shortId', (req: Request, res: Response) => {
+// Error handling middleware for API routes - ensures JSON is always returned, NEVER an HTML error page
+app.use((err: any, req: Request, res: Response, next: any) => {
+  if (req.path.startsWith('/api') || req.headers.accept?.includes('application/json')) {
+    console.error('API Error:', err);
+    const status = err.status || (err.code === 'LIMIT_FILE_SIZE' ? 413 : 400);
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'File size exceeds maximum 10MB limit.'
+      : (err.message || 'An error occurred during request processing.');
+    return res.status(status).json({
+      error: message,
+      success: false
+    });
+  }
+  next(err);
+});
+
+// --- Public Image Link Endpoint: /share/:shortId and /i/:shortId ---
+// Handles crawlers (returns server-rendered OG metadata) and humans (records click & fast HTTP 302 redirect)
+const handlePublicLink = (req: Request, res: Response) => {
   const { shortId } = req.params;
   const link = dbService.getLinkByShortId(shortId);
 
@@ -114,7 +130,7 @@ app.get('/i/:shortId', (req: Request, res: Response) => {
   const userAgent = req.headers['user-agent'] || '';
   const isCrawler = req.query.preview === '1' || req.query.crawler === '1' || isSocialCrawler(userAgent);
   const appUrl = getPublicAppUrl(req);
-  const canonicalUrl = `${appUrl}/i/${link.shortId}`;
+  const canonicalUrl = `${appUrl}/share/${link.shortId}`;
 
   let domain = 'Website';
   try {
@@ -174,9 +190,11 @@ app.get('/i/:shortId', (req: Request, res: Response) => {
       userAgent,
       referer
     });
-  } catch (err) {
-    // Analytics failure must NEVER block the redirect
-    console.error('Click recording error (non-blocking):', err);
+  } catch (err: any) {
+    // Analytics failure must NEVER block the redirect or dump to stderr
+    if (process.env.DEBUG_ANALYTICS) {
+      console.warn('Click recording notice (non-blocking):', err?.message);
+    }
   }
 
   // Ensure human redirect is not improperly cached
@@ -186,7 +204,11 @@ app.get('/i/:shortId', (req: Request, res: Response) => {
 
   // Fast HTTP 302 redirect directly to destination (immediate, no HTML, no JS, no delay)
   return res.redirect(302, link.destinationUrl);
-});
+};
+
+app.get('/share/:shortId', handlePublicLink);
+app.get('/i/:shortId', handlePublicLink);
+
 
 async function startServer() {
   let vite: any = null;

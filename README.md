@@ -256,17 +256,35 @@ sudo certbot --nginx -d links.yourdomain.com
 
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
-| `GET /i/:shortId` | `GET` | Public Link: Returns OG HTML for crawlers or immediate HTTP 302 redirect for humans |
+| `GET /share/:shortId` & `GET /i/:shortId` | `GET` | Public Link: Returns OG HTML for crawlers or immediate HTTP 302 redirect for humans |
 | `POST /api/image-links` | `POST` | Creates a new ImageLink (multipart/form-data: `image`, `destinationUrl`, `description`, `framingMode`) |
 | `GET /api/image-links` | `GET` | Lists recent ImageLinks with pagination and click counts |
 | `GET /api/image-links/:shortId` | `GET` | Retrieves metadata and public URL for a specific link |
 | `PATCH /api/image-links/:id/status`| `PATCH` | Updates link status (`active` or `disabled`) |
+| `POST /api/image-links/:shortId/report`| `POST` | Abuse Protection: Reports link; automatically disables after 5 reports |
 | `DELETE /api/image-links/:id` | `DELETE` | Permanently removes an ImageLink and its files |
 | `GET /api/crawler-test` | `GET` | Simulates crawler extraction and returns parsed OG tags & raw HTML |
 | `POST /api/run-tests` | `POST` | Executes the 5 automated behavior verification tests |
 | `POST /api/telegram/webhook` | `POST` | Telegram Bot API webhook updates endpoint |
 | `POST /api/telegram/simulate`| `POST` | Simulator endpoint executing Telegram bot updates |
 | `GET /api/health` | `GET` | Service health status and uptime |
+
+---
+
+## 🌐 Connecting a Custom Domain Later
+
+1. **Point your DNS records**:
+   - For an apex domain (`example.com`): Add an `A` record pointing to your server's IP address (or Cloud Run domain mapping).
+   - For a subdomain (`links.example.com`): Add a `CNAME` record pointing to your assigned host or server.
+
+2. **Update Environment Variable**:
+   In your `.env` or cloud console, update `PUBLIC_BASE_URL`:
+   ```bash
+   PUBLIC_BASE_URL="https://links.example.com"
+   ```
+
+3. **Re-register Telegram Webhook** (if using a Telegram bot):
+   In the web interface, open the **Telegram Webhook** modal and click **"Auto-Register Webhook with Telegram"** to point Telegram to `https://links.example.com/api/telegram/webhook`.
 
 ---
 

@@ -98,6 +98,17 @@ class DatabaseService {
         updated_at TEXT NOT NULL
       );
     `);
+
+    // Ensure columns exist on older databases
+    try {
+      this.db.exec("ALTER TABLE ImageLinks ADD COLUMN reportCount INTEGER DEFAULT 0;");
+    } catch {}
+    try {
+      this.db.exec("ALTER TABLE ImageLinks ADD COLUMN imageWidth INTEGER DEFAULT 1200;");
+    } catch {}
+    try {
+      this.db.exec("ALTER TABLE ImageLinks ADD COLUMN imageHeight INTEGER DEFAULT 630;");
+    } catch {}
   }
 
   // --- ImageLinks CRUD ---
@@ -216,6 +227,24 @@ class DatabaseService {
     const stmt = this.db.prepare('DELETE FROM ImageLinks WHERE id = ?');
     const res = stmt.run(id);
     return Number(res.changes) > 0;
+  }
+
+  reportLink(shortId: string): { success: boolean; disabled: boolean; reportCount: number } {
+    const link = this.getLinkByShortId(shortId);
+    if (!link) return { success: false, disabled: false, reportCount: 0 };
+
+    const newReportCount = ((link as any).reportCount || 0) + 1;
+    const shouldDisable = newReportCount >= 5;
+    const newStatus = shouldDisable ? 'disabled' : link.status;
+    const now = new Date().toISOString();
+
+    const stmt = this.db.prepare(`
+      UPDATE ImageLinks 
+      SET reportCount = ?, status = ?, updatedAt = ? 
+      WHERE id = ?
+    `);
+    stmt.run(newReportCount, newStatus, now, link.id);
+    return { success: true, disabled: shouldDisable, reportCount: newReportCount };
   }
 
   getOverallStats() {

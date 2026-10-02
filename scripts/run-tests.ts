@@ -32,11 +32,11 @@ async function runTests() {
     framingMode: 'crop_16_9'
   });
 
-  console.log(`Created test link: ${BASE_URL}/i/${testShortId}`);
+  console.log(`Created test link: ${BASE_URL}/share/${testShortId}`);
 
   // --- TEST 1: Normal browser request ---
   try {
-    const res = await fetch(`${BASE_URL}/i/${testShortId}`, {
+    const res = await fetch(`${BASE_URL}/share/${testShortId}`, {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -59,7 +59,7 @@ async function runTests() {
 
   // --- TEST 2: Social crawler request ---
   try {
-    const res = await fetch(`${BASE_URL}/i/${testShortId}`, {
+    const res = await fetch(`${BASE_URL}/share/${testShortId}`, {
       method: 'GET',
       headers: {
         'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
@@ -99,7 +99,7 @@ async function runTests() {
     // Disable the link
     dbService.updateLinkStatus(testLink.id, 'disabled');
 
-    const res = await fetch(`${BASE_URL}/i/${testShortId}`, {
+    const res = await fetch(`${BASE_URL}/share/${testShortId}`, {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'
@@ -123,7 +123,7 @@ async function runTests() {
   // --- TEST 4: Unknown link ---
   try {
     const unknownShortId = 'nonexistent_' + Date.now();
-    const res = await fetch(`${BASE_URL}/i/${unknownShortId}`, {
+    const res = await fetch(`${BASE_URL}/share/${unknownShortId}`, {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'
@@ -152,7 +152,7 @@ async function runTests() {
       throw new Error('Simulated Database Disk Failure');
     };
 
-    const res = await fetch(`${BASE_URL}/i/${testShortId}`, {
+    const res = await fetch(`${BASE_URL}/share/${testShortId}`, {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'

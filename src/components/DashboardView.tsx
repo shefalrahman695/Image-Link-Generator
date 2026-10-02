@@ -70,7 +70,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, []);
 
   const handleCopy = (link: ImageLinkItem) => {
-    const url = link.publicUrl || `${window.location.origin}/i/${link.shortId}`;
+    const url = link.publicUrl || `${window.location.origin}/share/${link.shortId}`;
     navigator.clipboard.writeText(url);
     setCopiedId(link.id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -260,7 +260,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs font-bold text-sky-400">
-                        /i/{link.shortId}
+                        /share/{link.shortId}
                       </span>
                       {!isActive && (
                         <span className="text-[11px] font-semibold text-red-400">
