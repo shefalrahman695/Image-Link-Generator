@@ -2,11 +2,32 @@ import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+function getWritableDataDir(): string {
+  // If explicitly on Vercel or serverless read-only environment
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    const tmpDir = path.join('/tmp', 'imagelink_data');
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+    return tmpDir;
+  }
+
+  const standardDir = path.resolve(process.cwd(), 'data');
+  try {
+    if (!fs.existsSync(standardDir)) {
+      fs.mkdirSync(standardDir, { recursive: true });
+    }
+    // Verify write permissions
+    const testFile = path.join(standardDir, '.write_test');
+    fs.writeFileSync(testFile, 'ok');
+    fs.unlinkSync(testFile);
+    return standardDir;
+  } catch {
+    const fallbackDir = path.join('/tmp', 'imagelink_data');
+    if (!fs.existsSync(fallbackDir)) fs.mkdirSync(fallbackDir, { recursive: true });
+    return fallbackDir;
+  }
 }
 
+const DATA_DIR = getWritableDataDir();
 const DB_PATH = path.join(DATA_DIR, 'imagelink.sqlite');
 
 export interface ImageLinkRecord {

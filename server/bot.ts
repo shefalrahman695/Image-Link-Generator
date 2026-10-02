@@ -466,20 +466,19 @@ export class TelegramBotService {
 
     dbService.clearSession(userId);
 
-    const publicUrl = `${appUrl}/share/${link.shortId}`;
-    const text = `✅ <b>Image Link Created</b>\n\n` +
-      `🔗 <code>${publicUrl}</code>\n\n` +
-      `<b>Destination:</b> ${link.destinationUrl}\n` +
-      `<b>Description:</b> ${link.description}\n` +
-      `<b>Framing:</b> ${link.framingMode === 'crop_16_9' ? 'Crop 16:9' : 'Full Image'}`;
-
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(publicUrl)}&text=${encodeURIComponent(link.description)}`;
+    const publicUrl = `${appUrl}/i/${link.shortId}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(publicUrl)}`;
+    const text = `Image Link created successfully.\n\n` +
+      `Image Link:\n${publicUrl}\n\n` +
+      `Destination: ${link.destinationUrl}\n` +
+      `Description: ${link.description}\n` +
+      `Framing: ${link.framingMode === 'crop_16_9' ? 'Crop 16:9' : 'Full Image'}`;
 
     const replyMarkup = {
       inline_keyboard: [
         [
           { text: '🔗 Open Link', url: publicUrl },
-          { text: '📤 Share', url: shareUrl }
+          { text: '📷 QR Code', url: qrUrl }
         ],
         [
           { text: '📱 Open Mini App', web_app: { url: `${appUrl}?user_id=${userId}` } },

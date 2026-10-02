@@ -7,7 +7,7 @@ interface CrawlerTestViewProps {
 }
 
 export const CrawlerTestView: React.FC<CrawlerTestViewProps> = ({ initialShortId }) => {
-  const [inputUrl, setInputUrl] = useState(initialShortId ? `${window.location.origin}/share/${initialShortId}` : '');
+  const [inputUrl, setInputUrl] = useState(initialShortId ? `${window.location.origin}/i/${initialShortId}` : '');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CrawlerTestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export const CrawlerTestView: React.FC<CrawlerTestViewProps> = ({ initialShortId
 
   useEffect(() => {
     if (initialShortId) {
-      runTest(`${window.location.origin}/share/${initialShortId}`);
+      runTest(`${window.location.origin}/i/${initialShortId}`);
     }
   }, [initialShortId]);
 

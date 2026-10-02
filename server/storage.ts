@@ -3,10 +3,30 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import sharp from 'sharp';
 
-const UPLOAD_DIR = path.resolve(process.cwd(), 'data', 'uploads');
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+function getWritableUploadDir(): string {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    const tmpDir = path.join('/tmp', 'imagelink_data', 'uploads');
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+    return tmpDir;
+  }
+
+  const standardDir = path.resolve(process.cwd(), 'data', 'uploads');
+  try {
+    if (!fs.existsSync(standardDir)) {
+      fs.mkdirSync(standardDir, { recursive: true });
+    }
+    const testFile = path.join(standardDir, '.write_test');
+    fs.writeFileSync(testFile, 'ok');
+    fs.unlinkSync(testFile);
+    return standardDir;
+  } catch {
+    const fallbackDir = path.join('/tmp', 'imagelink_data', 'uploads');
+    if (!fs.existsSync(fallbackDir)) fs.mkdirSync(fallbackDir, { recursive: true });
+    return fallbackDir;
+  }
 }
+
+const UPLOAD_DIR = getWritableUploadDir();
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];

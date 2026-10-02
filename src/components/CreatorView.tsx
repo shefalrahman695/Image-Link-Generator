@@ -188,7 +188,10 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
         data = await res.json();
       } else {
         const text = await res.text();
-        throw new Error(text.length < 150 ? text : `Server returned non-JSON response (${res.status})`);
+        if (res.status === 404) {
+          throw new Error('Server endpoint not reachable (404). Please ensure the backend server is running and the /api routes are routed.');
+        }
+        throw new Error(text.length > 0 && text.length < 100 && !text.includes('<!DOCTYPE') && !text.includes('NOT_FOUND') ? text : `Server request failed (Status ${res.status})`);
       }
 
       if (!res.ok) {
@@ -206,7 +209,7 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
 
   const handleCopy = () => {
     if (!createdLink) return;
-    const url = createdLink.publicUrl || `${window.location.origin}/share/${createdLink.shortId}`;
+    const url = createdLink.publicUrl || `${window.location.origin}/i/${createdLink.shortId}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -283,11 +286,11 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
           {/* Public Link Container */}
           <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 mb-5">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
-              Public Image Link
+              Your Image Link
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="font-mono text-sm font-bold text-sky-300 truncate select-all">
-                {createdLink.publicUrl || `${window.location.origin}/share/${createdLink.shortId}`}
+                {createdLink.publicUrl || `${window.location.origin}/i/${createdLink.shortId}`}
               </span>
               <button
                 onClick={handleCopy}
@@ -310,8 +313,16 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
 
           {/* Action Buttons */}
           <div className="grid grid-cols-3 gap-2.5 mb-3">
+            <button
+              onClick={handleCopy}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 px-3 py-2.5 text-xs font-semibold text-neutral-200 transition-colors"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              <span>Copy Link</span>
+            </button>
+
             <a
-              href={createdLink.publicUrl || `/share/${createdLink.shortId}`}
+              href={createdLink.publicUrl || `/i/${createdLink.shortId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-1.5 rounded-xl border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 px-3 py-2.5 text-xs font-semibold text-neutral-200 transition-colors"
@@ -328,25 +339,19 @@ export const CreatorView: React.FC<CreatorViewProps> = ({
               <QrCode className="h-3.5 w-3.5" />
               <span>QR Code</span>
             </button>
+          </div>
 
-            {onOpenCrawlerTest ? (
+          {onOpenCrawlerTest && (
+            <div className="mt-2 text-center">
               <button
                 onClick={() => onOpenCrawlerTest(createdLink.shortId)}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-sky-900/50 bg-sky-950/40 hover:bg-sky-900/60 px-3 py-2.5 text-xs font-semibold text-sky-300 transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300 font-medium py-1 px-2 rounded-lg hover:bg-sky-950/40 transition-colors"
               >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>Test OG Tags</span>
+                <Sparkles className="h-3 w-3" />
+                <span>Test Open Graph Crawlers</span>
               </button>
-            ) : (
-              <button
-                onClick={handleCopy}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 px-3 py-2.5 text-xs font-semibold text-neutral-200 transition-colors"
-              >
-                <Share2 className="h-3.5 w-3.5" />
-                <span>Share</span>
-              </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* QR Code Overlay */}
           {showQr && (
