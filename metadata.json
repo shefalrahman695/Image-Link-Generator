@@ -1,0 +1,7 @@
+{
+  "name": "ImageLink Generator",
+  "description": "Transform static images into shareable image links with server-rendered Open Graph metadata and fast destination redirects.",
+  "requerequestFramePermissionsstFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
